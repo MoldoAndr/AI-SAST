@@ -5,7 +5,7 @@ AI_SAST is a Docker-based tool that uses OpenAI's language models to perform adv
 ## Features
 
 - 🔍 **Smart File Discovery**: Recursively scans frontend directories and intelligently filters relevant files.
-- 🔄 **File Relationship Analysis**: Identifies dependencies between files for more accurate vulnerability detection.
+- 🔄 **File Relationship Analysis**: Identifies dependencies between files for accurate detection.
 - 🧠 **AI-Powered Analysis**: Leverages OpenAI's language models to detect potential security vulnerabilities.
 - 📊 **Comprehensive Reporting**: Generates detailed JSON reports with vulnerability information.
 - 🐳 **Docker Integration**: Run as a Docker container against any frontend project.

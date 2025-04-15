@@ -114,15 +114,3 @@ AI_SAST/
 cd AI_SAST
 python -m unittest discover tests
 ```
-
-## License
-
-MIT License
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgements
-
-This tool was inspired by the need for AI-powered security analysis in modern frontend codebases.

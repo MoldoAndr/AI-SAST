@@ -1,21 +1,14 @@
-"""
-Configuration module for AI_SAST.
-
-Handles loading and validating configuration from environment variables.
-"""
-
-import os
-import sys
+# src/scanner/config.py
 from dataclasses import dataclass
-from pathlib import Path
-
+from typing import Optional
+import os
 
 @dataclass
 class Config:
-    """Configuration class for AI_SAST."""
     openai_api_key: str
     src_dir: str
     output_dir: str
+    project_name: Optional[str] = None  # Custom name for log subdirectory
     model: str = "gpt-4-turbo"
     max_tokens: int = 8192
     temperature: float = 0.2
@@ -24,31 +17,20 @@ class Config:
     max_retries: int = 3
     retry_delay: int = 5
 
-
 def setup_config() -> Config:
-    """
-    Load and validate configuration from environment variables.
-    
-    Returns:
-        Config: Configuration object
-    
-    Raises:
-        ValueError: If required environment variables are missing
-    """
-    # Check for required environment variables
     openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
     if not openai_key:
         raise ValueError("OPENAI_API_KEY or OPENAI_KEY environment variable is required")
     
-    # Source directory (default to /app/src if not specified)
     src_dir = os.getenv("SRC_DIR", "/app/src")
     if not os.path.isdir(src_dir):
         raise ValueError(f"Source directory {src_dir} does not exist or is not a directory")
     
-    # Output directory (default to /logs if not specified)
     output_dir = os.getenv("OUTPUT_DIR", "/logs")
     if not os.path.isdir(output_dir):
         raise ValueError(f"Output directory {output_dir} does not exist or is not a directory")
+    
+    project_name = os.getenv("PROJECT_NAME")  # Optional: e.g., "src"
     
     # Optional configuration
     model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
@@ -63,6 +45,7 @@ def setup_config() -> Config:
         openai_api_key=openai_key,
         src_dir=src_dir,
         output_dir=output_dir,
+        project_name=project_name,
         model=model,
         max_tokens=max_tokens,
         temperature=temperature,

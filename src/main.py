@@ -1,23 +1,14 @@
-#!/usr/bin/env python3
-"""
-AI_SAST: AI-powered Static Application Security Testing Tool
-
-This is the main entry point for the AI_SAST scanner that analyzes frontend code
-for security vulnerabilities using OpenAI's language models.
-"""
-
+# src/main.py
 import os
 import sys
 import logging
 import time
 from pathlib import Path
 from datetime import datetime
-
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 import pyfiglet
-
 from scanner.file_discovery import discover_relevant_files
 from scanner.file_analyzer import analyze_file_relationships
 from scanner.vulnerability_detector import scan_files_for_vulnerabilities
@@ -25,9 +16,7 @@ from scanner.config import setup_config
 from scanner.logger import setup_logger
 
 def display_banner():
-    """Display the tool banner."""
     console = Console()
-    
     banner = pyfiglet.figlet_format("AI_SAST", font="slant")
     console.print(Panel.fit(
         f"[bold cyan]{banner}[/bold cyan]\n"
@@ -37,7 +26,6 @@ def display_banner():
     ))
 
 def main():
-    """Main function to orchestrate the scanning process."""
     display_banner()
     console = Console()
     
@@ -48,18 +36,17 @@ def main():
         console.print(f"[bold red]ERROR:[/bold red] Failed to setup configuration: {str(e)}")
         sys.exit(1)
     
-    # Setup logging
-    logger = setup_logger(config)
+    # Determine project name (use PROJECT_NAME or basename of src_dir)
+    project_name = config.project_name if config.project_name else Path(config.src_dir).name
+    output_subdir = Path(config.output_dir) / f"{project_name}_logs"
+    output_subdir.mkdir(exist_ok=True, parents=True)
+    
+    # Setup logging with the computed output directory
+    logger = setup_logger(output_subdir, config.log_level)
     logger.info("Starting AI_SAST scan")
     
     scan_start_time = time.time()
     src_dir = Path(config.src_dir)
-    output_dir = Path(config.output_dir)
-    
-    # Create output directory
-    project_name = src_dir.name
-    output_subdir = output_dir / f"{project_name}_logs"
-    output_subdir.mkdir(exist_ok=True, parents=True)
     
     console.print(f"[bold green]Scanning[/bold green] {project_name}")
     console.print(f"[bold]Source directory:[/bold] {src_dir}")
@@ -74,7 +61,6 @@ def main():
             TimeElapsedColumn(),
             console=console
         ) as progress:
-            # Step 1: Discover relevant files
             file_discovery_task = progress.add_task("[cyan]Discovering relevant files...", total=100)
             relevant_files = discover_relevant_files(src_dir, progress, file_discovery_task)
             progress.update(file_discovery_task, completed=100)
@@ -83,12 +69,10 @@ def main():
                 console.print("[yellow]Warning: No relevant files found for scanning[/yellow]")
                 return
             
-            # Step 2: Analyze file relationships
             relationship_task = progress.add_task("[cyan]Analyzing file relationships...", total=100)
             file_relationships = analyze_file_relationships(relevant_files, progress, relationship_task)
             progress.update(relationship_task, completed=100)
             
-            # Step 3: Scan files for vulnerabilities
             vuln_task = progress.add_task("[cyan]Scanning for vulnerabilities...", total=len(relevant_files))
             vulnerabilities = scan_files_for_vulnerabilities(
                 relevant_files, 
@@ -99,7 +83,6 @@ def main():
             )
             progress.update(vuln_task, completed=len(relevant_files))
         
-        # Display summary
         scan_duration = time.time() - scan_start_time
         files_count = len(relevant_files)
         vuln_count = sum(len(v) for v in vulnerabilities.values())
@@ -119,7 +102,7 @@ def main():
                     vuln_types[vtype] = vuln_types.get(vtype, 0) + 1
             
             for vtype, count in vuln_types.items():
-                console.print(f"  [yellow]• {vtype}:[/yellow] {count}")
+                console.print(f"  [yellow]{vtype}:[/yellow] {count}")
     
     except KeyboardInterrupt:
         console.print("\n[yellow]Scan interrupted by user[/yellow]")

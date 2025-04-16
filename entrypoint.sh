@@ -6,13 +6,23 @@ if [ -z "$OPENAI_KEY" ]; then
     exit 1
 fi
 
-if [ ! -d "/app/src" ]; then
-    echo "Error: Source directory not mounted. Please use -v /path/to/frontend:/app/src"
+if [ -z "$SRC_DIR" ]; then
+    echo "Error: SRC_DIR environment variable is required"
+    exit 1
+fi
+
+if [ ! -d "$SRC_DIR" ]; then
+    echo "Error: Source directory $SRC_DIR does not exist"
+    exit 1
+fi
+
+if [ -z "$OUTPUT_DIR" ]; then
+    echo "Error: OUTPUT_DIR environment variable is required"
     exit 1
 fi
 
 if [ ! -d "$OUTPUT_DIR" ]; then
-    echo "Error: Output directory not specified or does not exist. Please use -OUTPUT_DIR:/path/to/logs"
+    echo "Error: Output directory $OUTPUT_DIR does not exist"
     exit 1
 fi
 

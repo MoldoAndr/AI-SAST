@@ -1,37 +1,27 @@
-"""
-Logger module for AI_SAST.
-
-Sets up logging with appropriate formatting and output options.
-"""
-
+# src/scanner/logger.py
 import os
 import logging
-import sys
 from pathlib import Path
 from datetime import datetime
 import colorlog
 
-from .config import Config
-
-
-def setup_logger(config: Config) -> logging.Logger:
+def setup_logger(output_dir: Path, log_level: str) -> logging.Logger:
     """
     Set up and configure the logger.
     
     Args:
-        config: Configuration object
+        output_dir: Directory to save log files
+        log_level: Logging level (e.g., "INFO", "DEBUG")
         
     Returns:
         logging.Logger: Configured logger
     """
-    # Create logger
     logger = logging.getLogger("ai_sast")
-    logger.setLevel(getattr(logging, config.log_level.upper()))
+    logger.setLevel(getattr(logging, log_level.upper()))
     logger.handlers = []  # Clear existing handlers
     
-    # Create console handler with color formatting
     console_handler = colorlog.StreamHandler()
-    console_handler.setLevel(getattr(logging, config.log_level.upper()))
+    console_handler.setLevel(getattr(logging, log_level.upper()))
     console_formatter = colorlog.ColoredFormatter(
         "%(log_color)s%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -46,16 +36,13 @@ def setup_logger(config: Config) -> logging.Logger:
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
     
-    # Create file handler for detailed logging
     try:
-        log_dir = Path(config.output_dir) / "logs"
-        log_dir.mkdir(exist_ok=True, parents=True)
-        
+        output_dir.mkdir(exist_ok=True, parents=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_file = log_dir / f"ai_sast_{timestamp}.log"
+        log_file = output_dir / f"ai_sast_{timestamp}.log"
         
         file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.DEBUG)  # Always log everything to file
+        file_handler.setLevel(logging.DEBUG)
         file_formatter = logging.Formatter(
             "%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S"

@@ -39,7 +39,7 @@ docker run -e OPENAI_KEY="your_openai_api_key" -e OUTPUT_DIR=/logs -v /path/to/y
 To build the Docker image yourself:
 
 ```bash
-git clone https://github.com/yourusername/AI_SAST.git
+git clone https://github.com/MoldoAndr/AI_SAST.git
 cd AI_SAST
 docker build -t yourusername/AI_SAST .
 ```
@@ -108,9 +108,3 @@ AI_SAST/
 └── README.md
 ```
 
-### Running Tests
-
-```bash
-cd AI_SAST
-python -m unittest discover tests
-```

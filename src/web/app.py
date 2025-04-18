@@ -1,5 +1,5 @@
 """
-Web interface for AI_SAST
+Web interface for AI_SAST (modificat pentru a suporta scanarea directoarelor montate)
 """
 
 import os
@@ -7,6 +7,7 @@ import json
 import time
 import threading
 import subprocess
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
 from werkzeug.utils import secure_filename
@@ -19,6 +20,9 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
+# Directoriul montat pentru scanare
+MOUNTED_SRC_DIR = os.getenv("SRC_DIR", "/project")
+
 JOBS = {}
 
 ENTRYPOINT_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -27,6 +31,26 @@ def get_logs_directory() -> Path:
     """Get the logs directory from environment variables"""
     config = setup_config()
     return Path(config.output_dir)
+
+def sanitize_folder_name(name):
+    """Sanitize folder name to ensure consistency between generation and retrieval"""
+    return re.sub(r'[^\w\-]', '_', name)
+
+def get_mounted_subdirectories():
+    """Obține lista subdirectoarelor din volumul montat pentru scanare"""
+    mounted_dir = Path(MOUNTED_SRC_DIR)
+    if not mounted_dir.exists() or not mounted_dir.is_dir():
+        return []
+    
+    subdirs = []
+    for item in mounted_dir.iterdir():
+        if item.is_dir():
+            subdirs.append({
+                'path': str(item),
+                'name': item.name
+            })
+    
+    return subdirs
 
 def get_analyzed_folders():
     """Get list of all analyzed folders"""
@@ -123,6 +147,11 @@ def run_scan_job(src_dir, openai_key, model_name, job_id):
         env['OPENAI_API_KEY'] = openai_key or ENTRYPOINT_API_KEY
         env['SRC_DIR'] = src_dir
         env['OUTPUT_DIR'] = str(get_logs_directory())
+        
+        # Set project name based on directory name (not full path)
+        project_name = Path(src_dir).name
+        env['PROJECT_NAME'] = project_name
+        
         if model_name:
             env['OPENAI_MODEL'] = model_name
         
@@ -141,6 +170,10 @@ def run_scan_job(src_dir, openai_key, model_name, job_id):
         if process.returncode == 0:
             JOBS[job_id]['status'] = 'completed'
             JOBS[job_id]['output'] = stdout.decode('utf-8', errors='ignore')
+            
+            # Store the expected logs folder name
+            sanitized_name = sanitize_folder_name(project_name)
+            JOBS[job_id]['results_folder'] = f"{sanitized_name}_logs"
         else:
             JOBS[job_id]['status'] = 'failed'
             JOBS[job_id]['error'] = stderr.decode('utf-8', errors='ignore')
@@ -160,7 +193,22 @@ def analysis_details(folder_id):
     """Show analysis results for a specific folder"""
     details = get_folder_details(folder_id)
     if not details:
+        # Încercăm să găsim directorul de log cu alt pattern de sanitizare
+        logs_dir = get_logs_directory()
+        potential_matches = []
+        
+        # Căutăm toate directoarele de log
+        for folder in logs_dir.iterdir():
+            if folder.is_dir() and folder.name.endswith("_logs"):
+                potential_matches.append(folder.name)
+        
+        # Dacă există orice potrivire, redirecționăm la prima
+        if potential_matches:
+            flash(f"Folder original negăsit. Redirecționat către {potential_matches[0]}", "warning")
+            return redirect(url_for('analysis_details', folder_id=potential_matches[0]))
+        
         abort(404)
+    
     return render_template('analysis.html', details=details)
 
 @app.route('/scan', methods=['GET', 'POST'])
@@ -201,7 +249,12 @@ def scan():
         flash('Scan job started', 'success')
         return redirect(url_for('job_status', job_id=job_id))
     
-    return render_template('scan.html', has_entrypoint_key=bool(ENTRYPOINT_API_KEY))
+    # Pentru metoda GET, obține subdirectoarele disponibile pentru scanare
+    mounted_subdirs = get_mounted_subdirectories()
+    return render_template('scan.html', 
+                          has_entrypoint_key=bool(ENTRYPOINT_API_KEY),
+                          mounted_subdirs=mounted_subdirs,
+                          mounted_dir=MOUNTED_SRC_DIR)
 
 @app.route('/job/<job_id>')
 def job_status(job_id):

@@ -44,6 +44,9 @@ def main():
     scan_start_time = time.time()
     src_dir = Path(config.src_dir)
     
+    # Definim project_name în funcție de configurare sau path
+    project_name = config.project_name or src_dir.name
+    
     console.print(f"[bold green]Scanning[/bold green] {project_name}")
     console.print(f"[bold]Source directory:[/bold] {src_dir}")
     console.print(f"[bold]Output directory:[/bold] {output_subdir}")

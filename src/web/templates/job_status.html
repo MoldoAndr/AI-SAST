@@ -25,7 +25,7 @@
     </div>
     {% endif %}
     {% if job.status == 'completed' %}
-    <a href="/analysis/{{ job.folder|replace('/', '_')|replace(':', '_') }}_logs" 
+    <a href="/analysis/{{ job.results_folder if job.results_folder else job.folder|replace('/', '_')|replace(':', '_')|replace(' ', '_')|replace('.', '_') + '_logs' }}" 
        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
         View Results
     </a>

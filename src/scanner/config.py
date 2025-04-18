@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 import os
 from pathlib import Path
+import re
 
 @dataclass
 class Config:
@@ -20,11 +21,16 @@ class Config:
     def get_logs_folder_name(self) -> str:
         """Generate a standardized logs folder name based on the source directory path"""
         if self.project_name:
-            return f"{self.project_name}_logs"
+            # Înlocuiește caracterele problematice cu underscore
+            sanitized_name = re.sub(r'[^\w\-]', '_', self.project_name)
+            return f"{sanitized_name}_logs"
         else:
+            # Utilizăm doar numele directorului sursă, nu path-ul complet
             path = Path(self.src_dir).resolve()
-            sanitized_path = str(path).replace('/', '_').replace('\\', '_').replace(':', '_')
-            return f"{sanitized_path}_logs"
+            dir_name = path.name
+            # Sanitizăm numele directorului
+            sanitized_name = re.sub(r'[^\w\-]', '_', dir_name)
+            return f"{sanitized_name}_logs"
 
 def setup_config() -> Config:
     openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")

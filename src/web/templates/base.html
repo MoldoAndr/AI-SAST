@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI_SAST - AI-Powered Static Application Security Testing{% endblock %}</title>
@@ -36,7 +37,7 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-2xl font-bold text-indigo-600">AI_SAST</a>
+                        <a href="/" class="text-2xl font-bold text-indigo-600">Code Review</a>
                     </div>
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                         <a href="/" class="border-b-2 {% block nav_home %}border-transparent{% endblock %} hover:border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">

@@ -3,12 +3,22 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install general dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
     curl \
+    build-essential \ 
+    wget \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/codeql && \
+    wget -q https://github.com/github/codeql-cli-binaries/releases/download/v2.15.1/codeql-linux64.zip -O codeql.zip && \
+    unzip codeql.zip -d /opt/codeql && \
+    rm codeql.zip && \
+    ln -s /opt/codeql/codeql /usr/local/bin/codeql
+
+RUN git clone --depth 1 https://github.com/github/codeql.git /opt/codeql-repo
 
 # Copy requirements file
 COPY requirements.txt .

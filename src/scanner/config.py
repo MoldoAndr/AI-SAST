@@ -17,7 +17,9 @@ class Config:
     batch_size: int = 10
     max_retries: int = 3
     retry_delay: int = 5
-    
+    enable_codeql: bool = True
+    codeql_language: str = "javascript"
+
     def get_logs_folder_name(self) -> str:
         """Generate a standardized logs folder name based on the source directory path"""
         if self.project_name:
@@ -57,7 +59,9 @@ def setup_config() -> Config:
     batch_size = int(os.getenv("BATCH_SIZE", "10"))
     max_retries = int(os.getenv("MAX_RETRIES", "3"))
     retry_delay = int(os.getenv("RETRY_DELAY", "5"))
-    
+    enable_codeql = os.getenv("ENABLE_CODEQL", "true").lower() in ("true", "1", "yes")
+    codeql_language = os.getenv("CODEQL_LANGUAGE", "javascript")
+
     return Config(
         openai_api_key=openai_key,
         src_dir=src_dir,
@@ -69,5 +73,7 @@ def setup_config() -> Config:
         log_level=log_level,
         batch_size=batch_size,
         max_retries=max_retries,
-        retry_delay=retry_delay
+        retry_delay=retry_delay,
+        enable_codeql=enable_codeql,
+        codeql_language=codeql_language
     )

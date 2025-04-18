@@ -138,7 +138,7 @@ def get_folder_details(folder_id):
         'total_vulnerabilities': len(vulnerabilities)
     }
 
-def run_scan_job(src_dir, openai_key, model_name, job_id):
+def run_scan_job(src_dir, openai_key, model_name, job_id, enable_codeql='true', codeql_language='javascript'):
     """Run a scan job in a separate process"""
     JOBS[job_id]['status'] = 'running'
     
@@ -148,12 +148,13 @@ def run_scan_job(src_dir, openai_key, model_name, job_id):
         env['SRC_DIR'] = src_dir
         env['OUTPUT_DIR'] = str(get_logs_directory())
         
-        # Set project name based on directory name (not full path)
         project_name = Path(src_dir).name
         env['PROJECT_NAME'] = project_name
         
         if model_name:
             env['OPENAI_MODEL'] = model_name
+        env['ENABLE_CODEQL'] = enable_codeql
+        env['CODEQL_LANGUAGE'] = codeql_language
         
         process = subprocess.Popen(
             [sys.executable, os.path.join(
@@ -171,7 +172,6 @@ def run_scan_job(src_dir, openai_key, model_name, job_id):
             JOBS[job_id]['status'] = 'completed'
             JOBS[job_id]['output'] = stdout.decode('utf-8', errors='ignore')
             
-            # Store the expected logs folder name
             sanitized_name = sanitize_folder_name(project_name)
             JOBS[job_id]['results_folder'] = f"{sanitized_name}_logs"
         else:
@@ -218,7 +218,9 @@ def scan():
         folder_path = request.form.get('folder_path')
         openai_key = request.form.get('openai_key')
         model_name = request.form.get('model_name')
-        
+        enable_codeql = request.form.get('enable_codeql', 'true')
+        codeql_language = request.form.get('codeql_language', 'javascript')
+
         if not folder_path:
             flash('Please provide folder path', 'error')
             return redirect(url_for('scan'))
@@ -236,12 +238,14 @@ def scan():
             'status': 'starting',
             'folder': folder_path,
             'model': model_name or 'gpt-4-turbo',
+            'codeql': enable_codeql == 'true',
+            'codeql_language': codeql_language,
             'time': time.time()
         }
         
         thread = threading.Thread(
             target=run_scan_job,
-            args=(folder_path, openai_key, model_name, job_id)
+            args=(folder_path, openai_key, model_name, job_id, enable_codeql, codeql_language)
         )
         thread.daemon = True
         thread.start()
@@ -249,7 +253,6 @@ def scan():
         flash('Scan job started', 'success')
         return redirect(url_for('job_status', job_id=job_id))
     
-    # Pentru metoda GET, obține subdirectoarele disponibile pentru scanare
     mounted_subdirs = get_mounted_subdirectories()
     return render_template('scan.html', 
                           has_entrypoint_key=bool(ENTRYPOINT_API_KEY),

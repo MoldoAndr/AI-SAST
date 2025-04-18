@@ -57,6 +57,34 @@ docker run \
 - `MAX_RETRIES`: Maximum number of retries for API calls (default: `3`)
 - `RETRY_DELAY`: Delay between retries in seconds (default: `5`)
 
+
+## CodeQL Integration
+
+AI_SAST now includes CodeQL integration for advanced static analysis:
+
+- Automated vulnerability detection using GitHub's CodeQL engine
+- Support for JavaScript/TypeScript, Python, Java, C/C++, C#, and Go
+- Combined results from both AI and CodeQL analysis
+- Side-by-side comparison of findings
+
+### CodeQL Environment Variables
+
+- `ENABLE_CODEQL`: Enable or disable CodeQL analysis (default: `true`)
+- `CODEQL_LANGUAGE`: Primary language for CodeQL analysis (default: `javascript`)
+
+### Running with CodeQL Disabled
+
+If you want to run the tool without CodeQL analysis:
+
+```bash
+docker run -d \
+  -p 5000:5000 \
+  -e OPENAI_API_KEY="your_openai_api_key" \
+  -e ENABLE_CODEQL="false" \
+  -v /path/to/your/code:/project \
+  -v /path/to/output:/logs \
+  andreimoldovan2/ai_sast
+
 ## Web Interface
 
 AI_SAST provides a web interface that allows you to:

@@ -112,23 +112,23 @@ The tool can detect a wide range of vulnerabilities including:
 ```
 AI_SAST/
 ├── src/
-│   ├── scanner/         # Core scanning functionality
+│   ├── scanner/                        # Core scanning functionality
 │   │   ├── __init__.py
-│   │   ├── config.py    # Configuration management
-│   │   ├── file_analyzer.py    # Analyzes file relationships
-│   │   ├── file_discovery.py   # Smart file discovery
-│   │   ├── logger.py           # Logging setup
-│   │   ├── openai_client.py    # OpenAI API client
-│   │   └── vulnerability_detector.py  # Vulnerability detection
-│   ├── web/             # Web interface
-│   │   ├── app.py       # Flask web application
-│   │   ├── static/      # Static assets
-│   │   └── templates/   # HTML templates
-│   └── main.py          # Command-line entrypoint
-├── Dockerfile           # Docker configuration
-├── entrypoint.sh        # Container entrypoint script
-├── requirements.txt     # Python dependencies
-└── README.md            # Documentation
+│   │   ├── config.py                   # Configuration management
+│   │   ├── file_analyzer.py            # Analyzes file relationships
+│   │   ├── file_discovery.py           # Smart file discovery
+│   │   ├── logger.py                   # Logging setup
+│   │   ├── openai_client.py            # OpenAI API client
+│   │   └── vulnerability_detector.py   # Vulnerability detection
+│   ├── web/                            # Web interface
+│   │   ├── app.py                      # Flask web application
+│   │   ├── static/                     # Static assets
+│   │   └── templates/                  # HTML templates
+│   └── main.py                         # Command-line entrypoint
+├── Dockerfile                          # Docker configuration
+├── entrypoint.sh                       # Container entrypoint script
+├── requirements.txt                    # Python dependencies
+└── README.md                           # Documentation
 ```
 
 ## Building the Docker Image

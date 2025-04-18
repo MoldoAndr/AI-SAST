@@ -84,6 +84,7 @@ docker run -d \
   -v /path/to/your/code:/project \
   -v /path/to/output:/logs \
   andreimoldovan2/ai_sast
+```
 
 ## Web Interface
 

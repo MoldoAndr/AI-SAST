@@ -1,14 +1,14 @@
-# src/scanner/config.py
 from dataclasses import dataclass
 from typing import Optional
 import os
+from pathlib import Path
 
 @dataclass
 class Config:
     openai_api_key: str
     src_dir: str
     output_dir: str
-    project_name: Optional[str] = None  # Custom name for log subdirectory
+    project_name: Optional[str] = None
     model: str = "gpt-4-turbo"
     max_tokens: int = 8192
     temperature: float = 0.2
@@ -16,6 +16,15 @@ class Config:
     batch_size: int = 10
     max_retries: int = 3
     retry_delay: int = 5
+    
+    def get_logs_folder_name(self) -> str:
+        """Generate a standardized logs folder name based on the source directory path"""
+        if self.project_name:
+            return f"{self.project_name}_logs"
+        else:
+            path = Path(self.src_dir).resolve()
+            sanitized_path = str(path).replace('/', '_').replace('\\', '_').replace(':', '_')
+            return f"{sanitized_path}_logs"
 
 def setup_config() -> Config:
     openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
@@ -30,9 +39,11 @@ def setup_config() -> Config:
     if not os.path.isdir(output_dir):
         raise ValueError(f"Output directory {output_dir} does not exist or is not a directory")
     
-    project_name = os.getenv("PROJECT_NAME")  # Optional: e.g., "src"
+    if not os.access(output_dir, os.W_OK):
+        raise ValueError(f"Output directory {output_dir} is not writable")
     
-    # Optional configuration
+    project_name = os.getenv("PROJECT_NAME")
+    
     model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
     max_tokens = int(os.getenv("MAX_TOKENS", "8192"))
     temperature = float(os.getenv("TEMPERATURE", "0.2"))

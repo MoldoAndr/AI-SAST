@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}AI_SAST - Dashboard{% endblock %}
+
+{% block nav_home %}border-indigo-500{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h1 class="text-2xl font-semibold text-gray-900 mb-2">Analysis Dashboard</h1>
+    <p class="text-gray-600">View and manage your code security analysis results.</p>
+    
+    <div class="mt-6 flex justify-between items-center">
+        <h2 class="text-lg font-medium text-gray-900">Recent Analyses</h2>
+        <a href="/scan" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            New Scan
+        </a>
+    </div>
+    
+    <div class="mt-4">
+        {% if folders %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for folder in folders %}
+                <a href="/analysis/{{ folder.id }}" class="block">
+                    <div class="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg p-5 transition duration-150 ease-in-out transform hover:-translate-y-1 hover:shadow-md">
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-lg font-medium text-gray-900 truncate" title="{{ folder.name }}">{{ folder.name }}</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ folder.vulnerability_count > 0 and 'bg-red-100 text-red-800' or 'bg-green-100 text-green-800' }}">
+                                {{ folder.vulnerability_count }} {{ folder.vulnerability_count == 1 and 'issue' or 'issues' }}
+                            </span>
+                        </div>
+                        
+                        <div class="mt-2 text-sm text-gray-500">
+                            <div class="flex items-center">
+                                <svg class="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>{{ folder.date }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <div class="flex space-x-2">
+                                {% if folder.vulnerability_count > 0 %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                        Security Issues
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        No Issues
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No analyses found</h3>
+                <p class="mt-1 text-sm text-gray-500">Run a new scan to analyze code security.</p>
+                <div class="mt-6">
+                    <a href="/scan" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        New Scan
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

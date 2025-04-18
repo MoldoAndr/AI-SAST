@@ -1,4 +1,3 @@
-openai==1.13.3
 httpx==0.23.0
 astroid==3.0.1
 esprima==4.0.1
@@ -8,3 +7,9 @@ colorlog==6.7.0
 pyfiglet==1.0.2
 jsonschema==4.20.0
 rich==13.7.0
+Flask==2.3.3 
+Werkzeug==2.3.7
+openai==1.35.7 
+pathlib==1.0.1 
+requests==2.31.0 
+gunicorn==21.2.0

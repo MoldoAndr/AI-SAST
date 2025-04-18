@@ -1,4 +1,3 @@
-# src/main.py
 import os
 import sys
 import logging
@@ -29,19 +28,16 @@ def main():
     display_banner()
     console = Console()
     
-    # Setup configuration
     try:
         config = setup_config()
     except Exception as e:
         console.print(f"[bold red]ERROR:[/bold red] Failed to setup configuration: {str(e)}")
         sys.exit(1)
     
-    # Determine project name (use PROJECT_NAME or basename of src_dir)
-    project_name = config.project_name if config.project_name else Path(config.src_dir).name
-    output_subdir = Path(config.output_dir) / f"{project_name}_logs"
+    logs_folder_name = config.get_logs_folder_name()
+    output_subdir = Path(config.output_dir) / logs_folder_name
     output_subdir.mkdir(exist_ok=True, parents=True)
     
-    # Setup logging with the computed output directory
     logger = setup_logger(output_subdir, config.log_level)
     logger.info("Starting AI_SAST scan")
     

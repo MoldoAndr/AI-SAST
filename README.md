@@ -2,9 +2,6 @@
 
 > **AI_SAST** is a container‑native security scanner that combines traditional static analysis with the power of OpenAI models & GitHub CodeQL, giving you **actionable vulnerability reports** for modern frontend stacks in minutes.
 
-![AI_SAST hero](docs/images/hero_banner.png)
-
----
 
 ## ✨ Key Features
 

@@ -1,10 +1,5 @@
 # AI_SAST · *AI‑Powered Static Application Security Testing*
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/andreimoldovan2/ai_sast?style=for-the-badge)](https://hub.docker.com/r/andreimoldovan2/ai_sast)
-[![Docker Image Size](https://img.shields.io/docker/image-size/andreimoldovan2/ai_sast?style=for-the-badge)](https://hub.docker.com/r/andreimoldovan2/ai_sast)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![Last Commit](https://img.shields.io/github/last-commit/MoldoAndr/AI_SAST?style=for-the-badge)](https://github.com/MoldoAndr/AI_SAST/commits/main)
-
 > **AI_SAST** is a container‑native security scanner that combines traditional static analysis with the power of OpenAI models & GitHub CodeQL, giving you **actionable vulnerability reports** for modern frontend stacks in minutes.
 
 ![AI_SAST hero](docs/images/hero_banner.png)

@@ -1,171 +1,164 @@
-# AI_SAST: AI-Powered Static Application Security Testing Tool
+# AI_SAST · *AI‑Powered Static Application Security Testing*
 
-AI_SAST is a Docker-based tool that uses OpenAI's language models to perform advanced static code analysis for frontend applications, identifying potential security vulnerabilities through AI-powered analysis.
+[![Docker Pulls](https://img.shields.io/docker/pulls/andreimoldovan2/ai_sast?style=for-the-badge)](https://hub.docker.com/r/andreimoldovan2/ai_sast)
+[![Docker Image Size](https://img.shields.io/docker/image-size/andreimoldovan2/ai_sast?style=for-the-badge)](https://hub.docker.com/r/andreimoldovan2/ai_sast)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/MoldoAndr/AI_SAST?style=for-the-badge)](https://github.com/MoldoAndr/AI_SAST/commits/main)
 
-## Features
+> **AI_SAST** is a container‑native security scanner that combines traditional static analysis with the power of OpenAI models & GitHub CodeQL, giving you **actionable vulnerability reports** for modern frontend stacks in minutes.
 
-- 🔍 **Smart File Discovery**: Recursively scans directories and intelligently filters security-relevant files
-- 🔄 **File Relationship Analysis**: Identifies dependencies between files for contextual vulnerability detection
-- 🧠 **AI-Powered Analysis**: Leverages OpenAI's language models to detect sophisticated security vulnerabilities
-- 📊 **Comprehensive Reporting**: Generates detailed JSON reports with vulnerability information and remediation advice
-- 🌐 **Web Interface**: Easy-to-use web dashboard to view scan results and launch new scans
-- 🐳 **Docker Integration**: Runs as a containerized application for easy deployment and isolation
+![AI_SAST hero](docs/images/hero_banner.png)
 
-## Quick Start
+---
 
-### Prerequisites
+## ✨ Key Features
 
-- Docker installed on your system
-- An OpenAI API key
+|  |  |
+|---|---|
+| 🔍 **Smart File Discovery** | Recursively scans codebases and filters only security‑relevant files (JS/TS, JSX/TSX, HTML, CSS, JSON, configs…) |
+| 🔄 **Context‑Aware Analysis** | Maps file dependencies to understand data‑flows and taint sources |
+| 🤖 **AI‑Powered Detection** | Utilises GPT‑4‑Turbo (configurable) to spot complex, business‑logic vulnerabilities human scanners miss |
+| 🤝 **CodeQL Fusion** | Merges findings from GitHub’s CodeQL for JavaScript, Python, Go, C/C++… into a single report |
+| 📊 **Comprehensive Reports** | Outputs neatly‑structured JSON *and* renders a sleek web dashboard (Flask + HTMX) |
+| 🐳 **Zero‑Friction Docker** | One‑line run, fully isolated; no local Python or Node deps required |
 
-### Running with Docker
+---
+
+## 📚 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration)
+- [Web Interface](#-web-interface)
+- [Sample Report](#-sample-report)
+- [Architecture](#-architecture)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 🚀 Quick Start
+
+### Requirements
+
+* **Docker 20.10+**
+* An **OpenAI API key** with usage quota
 
 ```bash
+# Pull & launch the latest container (detached)
 docker run -d \
+  --name ai_sast \
   -p 5000:5000 \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -v /path/to/your/code:/project \
+  -e OPENAI_API_KEY="<your_openai_api_key>" \
+  -v /path/to/your/code:/project:ro \
   -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast
+  andreimoldovan2/ai_sast:latest
 ```
 
-Then access the web interface at http://localhost:5000
+Open <http://localhost:5000> and start your first scan with **one click**.
 
-### Command Line Usage
+> **Tip:** For CI pipelines, use the non‑interactive CLI entrypoint: `python /app/src/main.py` (see below).
 
-You can also run AI_SAST directly from the command line inside the container:
+### CLI Mode
 
 ```bash
-docker run \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -v /path/to/your/code:/project \
-  -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast python /app/src/main.py
+docker run --rm \
+  -e OPENAI_API_KEY="<your_openai_api_key>" \
+  -v $(pwd):/project:ro \
+  -v $(pwd)/ai_sast_logs:/logs \
+  andreimoldovan2/ai_sast python /app/src/main.py \
+  --project-name "$(basename $PWD)" \
+  --batch-size 20
 ```
 
-## Environment Variables
+---
 
-- `OPENAI_API_KEY` or `OPENAI_KEY`: Your OpenAI API key (required)
-- `SRC_DIR`: Source directory to scan (default: `/project`)
-- `OUTPUT_DIR`: Directory to store logs and reports (default: `/logs`)
-- `PROJECT_NAME`: Custom project name to use in reports (optional)
-- `OPENAI_MODEL`: OpenAI model to use (default: `gpt-4-turbo`)
-- `MAX_TOKENS`: Maximum tokens for OpenAI responses (default: `8192`)
-- `TEMPERATURE`: Temperature parameter for OpenAI (default: `0.2`)
-- `LOG_LEVEL`: Logging level (default: `INFO`)
-- `BATCH_SIZE`: Number of files to process in parallel (default: `10`)
-- `MAX_RETRIES`: Maximum number of retries for API calls (default: `3`)
-- `RETRY_DELAY`: Delay between retries in seconds (default: `5`)
+## ⚙️ Configuration
 
+Either export **environment variables** or pass them via `-e` to `docker run`.
 
-## CodeQL Integration
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENAI_API_KEY` **/ `OPENAI_KEY`** | **required** | OpenAI secret token |
+| `SRC_DIR` | `/project` | Path inside the container to scan |
+| `OUTPUT_DIR` | `/logs` | Where JSON & HTML reports are placed |
+| `PROJECT_NAME` | basename of `SRC_DIR` | Name displayed in UI & report filenames |
+| `OPENAI_MODEL` | `gpt-4-turbo` | Any model the API key can access |
+| `MAX_TOKENS` | `8192` | Per‑request token budget |
+| `TEMPERATURE` | `0.2` | LLM creativity vs determinism |
+| `ENABLE_CODEQL` | `true` | Toggle CodeQL stage |
+| `CODEQL_LANGUAGE` | `javascript` | Primary language to feed CodeQL |
+| `BATCH_SIZE` | `10` | Files processed concurrently |
+| `MAX_RETRIES` | `3` | LLM call retries on failures |
+| `RETRY_DELAY` | `5` | Seconds between retries |
 
-AI_SAST now includes CodeQL integration for advanced static analysis:
+---
 
-- Automated vulnerability detection using GitHub's CodeQL engine
-- Support for JavaScript/TypeScript, Python, Java, C/C++, C#, and Go
-- Combined results from both AI and CodeQL analysis
-- Side-by-side comparison of findings
+## 🌐 Web Interface
 
-### CodeQL Environment Variables
+![Dashboard screenshot](docs/images/dashboard_light.png)
 
-- `ENABLE_CODEQL`: Enable or disable CodeQL analysis (default: `true`)
-- `CODEQL_LANGUAGE`: Primary language for CodeQL analysis (default: `javascript`)
+The **responsive dashboard** lets you:
 
-### Running with CodeQL Disabled
+1. Browse historical scans (sortable by date & risk)
+2. Trigger new scans on any sub‑folder of the mounted volume
+3. Drill down into vulnerability details with code snippets, severity badges & remediation snippets
+4. Watch live progress bars 🚀
 
-If you want to run the tool without CodeQL analysis:
+All assets are served inside the container—no external calls, perfect for air‑gapped environments.
 
-```bash
-docker run -d \
-  -p 5000:5000 \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -e ENABLE_CODEQL="false" \
-  -v /path/to/your/code:/project \
-  -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast
+---
+
+## 📄 Sample Report
+
+<details>
+<summary>Click to expand JSON example</summary>
+
+```json
+{
+  "tool": "AI_SAST",
+  "project": "acme‑frontend",
+  "scan_date": "2025‑04‑19T13:26:44Z",
+  "vulnerabilities": [
+    {
+      "id": "XSS‑001",
+      "type": "Cross‑Site Scripting (XSS)",
+      "file": "src/components/SearchBox.tsx",
+      "line": 42,
+      "column": 18,
+      "severity": "high",
+      "description": "Unsanitised user input rendered into DOM via dangerouslySetInnerHTML.",
+      "remediation": "Escape or sanitize the query string before rendering, e.g. via DOMPurify."
+    },
+    {
+      "id": "IDOR‑003",
+      "type": "Insecure Direct Object Reference",
+      "file": "pages/api/user/[id].ts",
+      "line": 27,
+      "severity": "critical",
+      "description": "Endpoint fetches user records by ID without verifying ownership.",
+      "remediation": "Enforce ownership check or RBAC before returning data."
+    }
+  ]
+}
 ```
 
-## Web Interface
+</details>
 
-AI_SAST provides a web interface that allows you to:
+---
 
-1. View all previous scan results
-2. Start new scans by selecting directories within the mounted volume
-3. View detailed vulnerability reports with severity levels and remediation advice
-4. Track scan job progress in real-time
+## 🏗 Architecture
 
-The web interface is accessible at http://localhost:5000 when running the Docker container.
-
-## Example Output
-
-The tool generates vulnerability reports in JSON format:
-
-```
-logs/
-│
-├── my_project_logs/
-│   ├── cross_site_scripting_xss.json
-│   ├── insecure_authentication.json
-│   └── path_traversal.json
-```
-
-Each JSON file contains details about the vulnerabilities including:
-- Vulnerability type
-- Description
-- File location (file, line, column)
-- Severity level (critical, high, medium, low)
-- Recommended remediation
-
-## Vulnerability Types Detected
-
-The tool can detect a wide range of vulnerabilities including:
-
-- Cross-Site Scripting (XSS)
-- Cross-Site Request Forgery (CSRF)
-- Insecure Authentication
-- Insecure Data Storage
-- Insecure API Endpoints
-- Information Leakage
-- Improper Access Control
-- Insecure Dependencies
-- Prototype Pollution
-- Path Traversal
-- Server-Side Request Forgery (SSRF)
-- SQL/NoSQL Injection
-- DOM-based vulnerabilities
-- Sensitive Data Exposure
-
-## Project Architecture
-
-```
-AI_SAST/
-├── src/
-│   ├── scanner/                        # Core scanning functionality
-│   │   ├── __init__.py
-│   │   ├── config.py                   # Configuration management
-│   │   ├── file_analyzer.py            # Analyzes file relationships
-│   │   ├── file_discovery.py           # Smart file discovery
-│   │   ├── logger.py                   # Logging setup
-│   │   ├── openai_client.py            # OpenAI API client
-│   │   └── vulnerability_detector.py   # Vulnerability detection
-│   ├── web/                            # Web interface
-│   │   ├── app.py                      # Flask web application
-│   │   ├── static/                     # Static assets
-│   │   └── templates/                  # HTML templates
-│   └── main.py                         # Command-line entrypoint
-├── Dockerfile                          # Docker configuration
-├── entrypoint.sh                       # Container entrypoint script
-├── requirements.txt                    # Python dependencies
-└── README.md                           # Documentation
-```
-
-## Building the Docker Image
-
-To build the Docker image yourself:
-
-```bash
-git clone https://github.com/MoldoAndr/AI_SAST.git
-cd AI_SAST
-docker build -t yourusername/ai_sast .
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Fira Sans", "sequence": {"showSequenceNumbers": true}} }%%
+graph TD
+  subgraph Container
+    A[File Discovery] --> B[Relationship Mapper]
+    B --> C[LLM Vulnerability Detector]
+    C --> D[Report Generator]
+    D -->|JSON / HTML| E[Logs & Dashboard]
+    F[CodeQL Engine] -. optional .-> C
+  end
+  User[Web UI] --> C
+  User --> E
 ```

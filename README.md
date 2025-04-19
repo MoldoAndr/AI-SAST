@@ -150,7 +150,7 @@ graph TD
     C --> D[Report Generator]
     D -->|JSON / HTML| E[Logs & Dashboard]
     F[CodeQL Engine] -. optional .-> C
-  end
   User[Web UI] --> C
   User --> E
+  end
 ```

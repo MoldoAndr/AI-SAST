@@ -7,7 +7,6 @@
     <title>{% block title %}AI_SAST - AI-Powered Static Application Security Testing{% endblock %}</title>
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Heroicons -->
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -37,15 +36,36 @@
             <div class="flex justify-between h-16">
                 <div class="flex">
                     <div class="flex-shrink-0 flex items-center">
-                        <a href="/" class="text-2xl font-bold text-indigo-600">Code Review</a>
+                        <a href="/" class="text-2xl font-bold text-indigo-600">AI_SAST</a>
                     </div>
                     <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                         <a href="/" class="border-b-2 {% block nav_home %}border-transparent{% endblock %} hover:border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
                             Dashboard
                         </a>
-                        <a href="/scan" class="border-b-2 {% block nav_scan %}border-transparent{% endblock %} hover:border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
-                            New Scan
+                        <a href="/projects" class="border-b-2 {% block nav_projects %}border-transparent{% endblock %} hover:border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
+                            Projects
                         </a>
+                        <a href="/scan" class="border-b-2 {% block nav_scan %}border-transparent{% endblock %} hover:border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
+                            Start Scan
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Token Usage Stats -->
+                <div class="flex items-center">
+                    <div class="hidden md:block">
+                        <div class="flex items-baseline space-x-2">
+                            <div class="flex items-center text-xs text-gray-600 bg-gray-100 rounded-lg px-3 py-1">
+                                <span class="text-gray-500 mr-1">Cost:</span>
+                                <span id="nav-cost" class="font-semibold">${{ "%.4f"|format(pricing_data.cost) }}</span>
+                            </div>
+                            {% if scanning_in_progress %}
+                            <div class="flex items-center text-xs text-yellow-600 bg-yellow-100 rounded-lg px-3 py-1">
+                                <span class="animate-pulse">●</span>
+                                <span class="ml-1">Scanning in progress...</span>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,6 +107,22 @@
         </div>
     </main>
 
+    {% if scanning_in_progress %}
+    <script>
+        // Periodically update the pricing info in the nav bar
+        setInterval(() => {
+            fetch('/api/pricing')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('nav-cost').textContent = '$' + data.cost.toFixed(4);
+                })
+                .catch(error => {
+                    console.error('Error fetching pricing data:', error);
+                });
+        }, 5000);
+    </script>
+    {% endif %}
+    
     {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,171 +1,114 @@
-# AI_SAST: AI-Powered Static Application Security Testing Tool
+# AI_SAST · *AI‑Powered Static Application Security Testing*
 
-AI_SAST is a Docker-based tool that uses OpenAI's language models to perform advanced static code analysis for frontend applications, identifying potential security vulnerabilities through AI-powered analysis.
+> **AI_SAST** is a container‑native security scanner that uses OpenAI's GPT-4o models to analyze multiple projects for security vulnerabilities, providing **detailed vulnerability reports** for all your codebases.
 
-## Features
+## ✨ Key Features
 
-- 🔍 **Smart File Discovery**: Recursively scans directories and intelligently filters security-relevant files
-- 🔄 **File Relationship Analysis**: Identifies dependencies between files for contextual vulnerability detection
-- 🧠 **AI-Powered Analysis**: Leverages OpenAI's language models to detect sophisticated security vulnerabilities
-- 📊 **Comprehensive Reporting**: Generates detailed JSON reports with vulnerability information and remediation advice
-- 🌐 **Web Interface**: Easy-to-use web dashboard to view scan results and launch new scans
-- 🐳 **Docker Integration**: Runs as a containerized application for easy deployment and isolation
+|  |  |
+|---|---|
+| 🤖 **GPT-4o Powered** | Leverages OpenAI's most capable model for deep, context-aware security analysis |
+| 📂 **Multi-Project Support** | Batch process multiple project directories in a single run |
+| 💰 **Cost Tracking** | Real-time tracking of token usage and costs for transparency |
+| 🔄 **Context-Aware Analysis** | Maps file dependencies to understand data‑flows and taint sources |
+| 🔍 **Smart File Discovery** | Automatically filters security‑relevant files from large codebases |
+| 🤝 **CodeQL Integration** | Combines findings from GitHub's CodeQL with GPT-4o analysis |
+| 📊 **Visualization** | Web dashboard for tracking scan progress and viewing results |
+| 🐳 **Docker Support** | Single command to launch and process all your projects |
 
-## Quick Start
+---
 
-### Prerequisites
+## 📚 Table of Contents
 
-- Docker installed on your system
-- An OpenAI API key
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
+- [Web Interface](#-web-interface)
+- [Output Format](#-output-format)
+- [Pricing](#-pricing)
+- [Example Usage](#-example-usage)
 
-### Running with Docker
+---
+
+## 🚀 Quick Start
+
+### Requirements
+
+* **Docker 20.10+**
+* Access to **OpenAI API** with GPT-4o model access
 
 ```bash
+# Pull & launch the container
 docker run -d \
+  --name ai_sast \
   -p 5000:5000 \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -v /path/to/your/code:/project \
-  -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast
+  -v /path/to/your/projects:/project/input \
+  -v /path/to/output:/project/output \
+  andreimoldovan2/ai_sast:latest
 ```
 
-Then access the web interface at http://localhost:5000
+Open http://localhost:5000 in your browser to access the web interface.
 
-### Command Line Usage
+## 📁 Project Structure
 
-You can also run AI_SAST directly from the command line inside the container:
-
-```bash
-docker run \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -v /path/to/your/code:/project \
-  -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast python /app/src/main.py
-```
-
-## Environment Variables
-
-- `OPENAI_API_KEY` or `OPENAI_KEY`: Your OpenAI API key (required)
-- `SRC_DIR`: Source directory to scan (default: `/project`)
-- `OUTPUT_DIR`: Directory to store logs and reports (default: `/logs`)
-- `PROJECT_NAME`: Custom project name to use in reports (optional)
-- `OPENAI_MODEL`: OpenAI model to use (default: `gpt-4-turbo`)
-- `MAX_TOKENS`: Maximum tokens for OpenAI responses (default: `8192`)
-- `TEMPERATURE`: Temperature parameter for OpenAI (default: `0.2`)
-- `LOG_LEVEL`: Logging level (default: `INFO`)
-- `BATCH_SIZE`: Number of files to process in parallel (default: `10`)
-- `MAX_RETRIES`: Maximum number of retries for API calls (default: `3`)
-- `RETRY_DELAY`: Delay between retries in seconds (default: `5`)
-
-
-## CodeQL Integration
-
-AI_SAST now includes CodeQL integration for advanced static analysis:
-
-- Automated vulnerability detection using GitHub's CodeQL engine
-- Support for JavaScript/TypeScript, Python, Java, C/C++, C#, and Go
-- Combined results from both AI and CodeQL analysis
-- Side-by-side comparison of findings
-
-### CodeQL Environment Variables
-
-- `ENABLE_CODEQL`: Enable or disable CodeQL analysis (default: `true`)
-- `CODEQL_LANGUAGE`: Primary language for CodeQL analysis (default: `javascript`)
-
-### Running with CodeQL Disabled
-
-If you want to run the tool without CodeQL analysis:
-
-```bash
-docker run -d \
-  -p 5000:5000 \
-  -e OPENAI_API_KEY="your_openai_api_key" \
-  -e ENABLE_CODEQL="false" \
-  -v /path/to/your/code:/project \
-  -v /path/to/output:/logs \
-  andreimoldovan2/ai_sast
-```
-
-## Web Interface
-
-AI_SAST provides a web interface that allows you to:
-
-1. View all previous scan results
-2. Start new scans by selecting directories within the mounted volume
-3. View detailed vulnerability reports with severity levels and remediation advice
-4. Track scan job progress in real-time
-
-The web interface is accessible at http://localhost:5000 when running the Docker container.
-
-## Example Output
-
-The tool generates vulnerability reports in JSON format:
+The tool expects the following directory structure:
 
 ```
-logs/
-│
-├── my_project_logs/
-│   ├── cross_site_scripting_xss.json
-│   ├── insecure_authentication.json
-│   └── path_traversal.json
+/project/
+├── input/
+│   ├── project1/
+│   │   ├── src/
+│   │   ├── ...
+│   ├── project2/
+│   │   ├── src/
+│   │   ├── ...
+│   └── ...
+└── output/
+    ├── project1/
+    ├── project2/
+    └── ...
 ```
 
-Each JSON file contains details about the vulnerabilities including:
-- Vulnerability type
-- Description
-- File location (file, line, column)
-- Severity level (critical, high, medium, low)
-- Recommended remediation
+- All projects should be placed in subdirectories under `/project/input/`
+- Results will be generated in matching subdirectories under `/project/output/`
 
-## Vulnerability Types Detected
+## 🌐 Web Interface
 
-The tool can detect a wide range of vulnerabilities including:
+The web interface provides the following features:
 
-- Cross-Site Scripting (XSS)
-- Cross-Site Request Forgery (CSRF)
-- Insecure Authentication
-- Insecure Data Storage
-- Insecure API Endpoints
-- Information Leakage
-- Improper Access Control
-- Insecure Dependencies
-- Prototype Pollution
-- Path Traversal
-- Server-Side Request Forgery (SSRF)
-- SQL/NoSQL Injection
-- DOM-based vulnerabilities
-- Sensitive Data Exposure
+1. **API Key Setup**: Enter your OpenAI API key once at startup
+2. **Project Overview**: View all projects in the input directory
+3. **Scan Execution**: Start scans for all projects with one click
+4. **Progress Tracking**: Monitor scan progress and token usage in real-time
+5. **Results Viewing**: Explore vulnerabilities with severity ratings and recommendations
+6. **Cost Tracking**: Track token usage and costs in real-time
 
-## Project Architecture
+## 📝 Output Format
 
-```
-AI_SAST/
-├── src/
-│   ├── scanner/                        # Core scanning functionality
-│   │   ├── __init__.py
-│   │   ├── config.py                   # Configuration management
-│   │   ├── file_analyzer.py            # Analyzes file relationships
-│   │   ├── file_discovery.py           # Smart file discovery
-│   │   ├── logger.py                   # Logging setup
-│   │   ├── openai_client.py            # OpenAI API client
-│   │   └── vulnerability_detector.py   # Vulnerability detection
-│   ├── web/                            # Web interface
-│   │   ├── app.py                      # Flask web application
-│   │   ├── static/                     # Static assets
-│   │   └── templates/                  # HTML templates
-│   └── main.py                         # Command-line entrypoint
-├── Dockerfile                          # Docker configuration
-├── entrypoint.sh                       # Container entrypoint script
-├── requirements.txt                    # Python dependencies
-└── README.md                           # Documentation
-```
+For each project, the tool generates:
 
-## Building the Docker Image
+- JSON vulnerability reports for each type of vulnerability
+- A summary JSON file with all findings
+- Token usage and cost statistics
 
-To build the Docker image yourself:
+## 💰 Pricing
 
-```bash
-git clone https://github.com/MoldoAndr/AI_SAST.git
-cd AI_SAST
-docker build -t yourusername/ai_sast .
-```
+This tool uses OpenAI's GPT-4o with the following pricing:
+
+- **Input**: $3.750 per 1M tokens
+- **Output**: $15.000 per 1M tokens
+
+The web interface displays real-time cost tracking to help manage expenses.
+
+## 🔍 Example Usage
+
+1. Place your project directories in `/project/input/`
+2. Start the container with the Docker command above
+3. Open http://localhost:5000 in your browser
+4. Enter your OpenAI API key when prompted
+5. Click "Start Scan" to analyze all projects
+6. View results in the web interface or in `/project/output/`
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

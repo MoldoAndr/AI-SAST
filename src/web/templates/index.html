@@ -76,5 +76,27 @@
             </div>
         {% endif %}
     </div>
+
+    <!-- Pricing Statistics Card -->
+    <div class="mt-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <h2 class="text-lg font-medium text-gray-900 mb-4">Token Usage & Cost</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p class="text-sm text-gray-500">Input Tokens</p>
+                <p class="text-xl font-semibold">{{ pricing_data.input_tokens }}</p>
+                <p class="text-xs text-gray-500 mt-1">${{ (pricing_data.input_tokens * 3.75 / 1000000)|round(4) }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p class="text-sm text-gray-500">Output Tokens</p>
+                <p class="text-xl font-semibold">{{ pricing_data.output_tokens }}</p>
+                <p class="text-xs text-gray-500 mt-1">${{ (pricing_data.output_tokens * 15.0 / 1000000)|round(4) }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p class="text-sm text-gray-500">Total Cost</p>
+                <p class="text-xl font-semibold text-indigo-600">${{ "%.4f"|format(pricing_data.cost) }}</p>
+                <p class="text-xs text-gray-500 mt-1">GPT-4o</p>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

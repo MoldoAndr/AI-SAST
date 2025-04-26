@@ -3,6 +3,9 @@ from typing import Optional
 import os
 from pathlib import Path
 import re
+import logging
+
+logger = logging.getLogger("ai_sast")
 
 @dataclass
 class Config:
@@ -10,7 +13,7 @@ class Config:
     src_dir: str
     output_dir: str
     project_name: Optional[str] = None
-    model: str = "gpt-4-turbo"
+    model: str = "gpt-4o"  # Always use gpt-4o
     max_tokens: int = 8192
     temperature: float = 0.2
     log_level: str = "INFO"
@@ -23,36 +26,51 @@ class Config:
     def get_logs_folder_name(self) -> str:
         """Generate a standardized logs folder name based on the source directory path"""
         if self.project_name:
-            # Înlocuiește caracterele problematice cu underscore
+            # Replace problematic characters with underscore
             sanitized_name = re.sub(r'[^\w\-]', '_', self.project_name)
             return f"{sanitized_name}_logs"
         else:
-            # Utilizăm doar numele directorului sursă, nu path-ul complet
+            # Use only the name of the source directory, not the full path
             path = Path(self.src_dir).resolve()
             dir_name = path.name
-            # Sanitizăm numele directorului
+            # Sanitize the directory name
             sanitized_name = re.sub(r'[^\w\-]', '_', dir_name)
             return f"{sanitized_name}_logs"
 
 def setup_config() -> Config:
+    """
+    Set up and validate the configuration.
+    
+    Returns:
+        Config: Configuration object
+    """
     openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
     if not openai_key:
         raise ValueError("OPENAI_API_KEY or OPENAI_KEY environment variable is required")
     
-    src_dir = os.getenv("SRC_DIR", "/app/src")
-    if not os.path.isdir(src_dir):
-        raise ValueError(f"Source directory {src_dir} does not exist or is not a directory")
+    # Default to the /project directory structure
+    base_dir = Path("/project")
     
-    output_dir = os.getenv("OUTPUT_DIR", "/logs")
+    # Default source and output directories
+    src_dir = os.getenv("SRC_DIR", str(base_dir / "input"))
+    if not os.path.isdir(src_dir):
+        logger.warning(f"Source directory {src_dir} doesn't exist or is not a directory")
+    
+    output_dir = os.getenv("OUTPUT_DIR", str(base_dir / "output"))
     if not os.path.isdir(output_dir):
-        raise ValueError(f"Output directory {output_dir} does not exist or is not a directory")
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            logger.info(f"Created output directory: {output_dir}")
+        except Exception as e:
+            raise ValueError(f"Could not create output directory {output_dir}: {str(e)}")
     
     if not os.access(output_dir, os.W_OK):
         raise ValueError(f"Output directory {output_dir} is not writable")
     
     project_name = os.getenv("PROJECT_NAME")
     
-    model = os.getenv("OPENAI_MODEL", "gpt-4-turbo")
+    # Always use GPT-4o model
+    model = "gpt-4o"
     max_tokens = int(os.getenv("MAX_TOKENS", "8192"))
     temperature = float(os.getenv("TEMPERATURE", "0.2"))
     log_level = os.getenv("LOG_LEVEL", "INFO")
@@ -62,6 +80,8 @@ def setup_config() -> Config:
     enable_codeql = os.getenv("ENABLE_CODEQL", "true").lower() in ("true", "1", "yes")
     codeql_language = os.getenv("CODEQL_LANGUAGE", "javascript")
 
+    logger.info(f"Configuration: src_dir={src_dir}, output_dir={output_dir}, model={model}")
+    
     return Config(
         openai_api_key=openai_key,
         src_dir=src_dir,

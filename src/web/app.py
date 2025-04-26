@@ -1,5 +1,5 @@
 """
-Web interface for AI_SAST (modificat pentru a suporta scanarea directoarelor montate)
+Web interface for AI_SAST (modified to support the new project structure)
 """
 
 import os
@@ -9,269 +9,292 @@ import threading
 import subprocess
 import re
 from pathlib import Path
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
-from werkzeug.utils import secure_filename
+from typing import Dict, List, Any, Optional
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, session
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from scanner.config import Config, setup_config
+from scanner.config import Config
+from project_orchestrator import run_orchestrator
+from scanner.pricing_tracker import get_global_pricing
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['SESSION_TYPE'] = 'filesystem'
 
-# Directoriul montat pentru scanare
-MOUNTED_SRC_DIR = os.getenv("SRC_DIR", "/project")
+# Base project directory structure
+BASE_DIR = Path("/project")
+INPUT_DIR = BASE_DIR / "input"
+OUTPUT_DIR = BASE_DIR / "output"
 
-JOBS = {}
-
-ENTRYPOINT_API_KEY = os.getenv("OPENAI_API_KEY")
-
-def get_logs_directory() -> Path:
-    """Get the logs directory from environment variables"""
-    config = setup_config()
-    return Path(config.output_dir)
+# API key storage (in-memory only, not persistent)
+API_KEY = None
+SCANNING_IN_PROGRESS = False
+CURRENT_SCAN_PROGRESS = 0
+SCAN_STATUS = "idle"
 
 def sanitize_folder_name(name):
     """Sanitize folder name to ensure consistency between generation and retrieval"""
     return re.sub(r'[^\w\-]', '_', name)
 
-def get_mounted_subdirectories():
-    """Obține lista subdirectoarelor din volumul montat pentru scanare"""
-    mounted_dir = Path(MOUNTED_SRC_DIR)
-    if not mounted_dir.exists() or not mounted_dir.is_dir():
+def get_project_folders():
+    """Get a list of all project folders in the input directory"""
+    if not INPUT_DIR.exists():
         return []
     
-    subdirs = []
-    for item in mounted_dir.iterdir():
+    projects = []
+    for item in INPUT_DIR.iterdir():
         if item.is_dir():
-            subdirs.append({
+            projects.append({
+                'name': item.name,
                 'path': str(item),
-                'name': item.name
+                'file_count': sum(1 for _ in item.glob('**/*') if _.is_file())
             })
     
-    return subdirs
+    return projects
 
 def get_analyzed_folders():
-    """Get list of all analyzed folders"""
-    logs_dir = get_logs_directory()
-    
-    if not logs_dir.exists():
+    """Get list of all analyzed folders in the output directory"""
+    if not OUTPUT_DIR.exists():
         return []
     
     folders = []
-    for folder in logs_dir.iterdir():
-        if folder.is_dir() and folder.name.endswith("_logs"):
+    for folder in OUTPUT_DIR.iterdir():
+        if folder.is_dir():
             try:
-                latest_file = max(folder.glob('**/*'), key=lambda x: x.stat().st_mtime if x.is_file() else 0)
-                timestamp = latest_file.stat().st_mtime if latest_file.is_file() else 0
-            except ValueError:
-                timestamp = 0
-                
-            vuln_count = 0
-            for json_file in folder.glob('*.json'):
-                try:
-                    with open(json_file, 'r') as f:
-                        vulns = json.load(f)
-                        vuln_count += len(vulns)
-                except:
-                    pass
-            
-            folder_name = folder.name
-            if folder_name.endswith("_logs"):
-                folder_name = folder_name[:-5]
-            
-            folders.append({
-                'id': folder.name,
-                'name': folder_name,
-                'timestamp': timestamp,
-                'date': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp)),
-                'vulnerability_count': vuln_count
-            })
+                # Look for scan results
+                results_file = folder / "scan_results.json"
+                if results_file.exists():
+                    with open(results_file, 'r') as f:
+                        results = json.load(f)
+                    
+                    vuln_count = len(results.get("vulnerabilities", []))
+                    timestamp = results.get("scan_time", "")
+                    
+                    folders.append({
+                        'id': folder.name,
+                        'name': folder.name,
+                        'timestamp': timestamp,
+                        'date': timestamp.split('T')[0] if 'T' in timestamp else timestamp,
+                        'vulnerability_count': vuln_count
+                    })
+            except Exception as e:
+                print(f"Error reading results for {folder.name}: {str(e)}")
     
-    folders.sort(key=lambda x: x['timestamp'], reverse=True)
+    # Sort by timestamp (newest first)
+    folders.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     return folders
 
 def get_folder_details(folder_id):
     """Get details for a specific analysis folder"""
-    logs_dir = get_logs_directory()
-    folder_path = logs_dir / folder_id
+    folder_path = OUTPUT_DIR / folder_id
     
     if not folder_path.exists() or not folder_path.is_dir():
         return None
     
-    vulnerabilities = []
-    
-    for json_file in folder_path.glob('*.json'):
-        try:
-            with open(json_file, 'r') as f:
-                vulns = json.load(f)
-                vulnerabilities.extend(vulns)
-        except:
-            pass
-    
-    severity_counts = {
-        'critical': 0,
-        'high': 0,
-        'medium': 0,
-        'low': 0
-    }
-    
-    for vuln in vulnerabilities:
-        severity = vuln.get('severity', '').lower()
-        if severity in severity_counts:
-            severity_counts[severity] += 1
-    
-    vuln_types = {}
-    for vuln in vulnerabilities:
-        vuln_type = vuln.get('vulnerability_type', 'Unknown')
-        if vuln_type not in vuln_types:
-            vuln_types[vuln_type] = 0
-        vuln_types[vuln_type] += 1
+    try:
+        results_file = folder_path / "scan_results.json"
+        if not results_file.exists():
+            return None
+            
+        with open(results_file, 'r') as f:
+            results = json.load(f)
+        
+        vulnerabilities = results.get("vulnerabilities", [])
+        
+        # Calculate severity counts
+        severity_counts = {
+            'critical': 0,
+            'high': 0,
+            'medium': 0,
+            'low': 0
+        }
+        
+        for vuln in vulnerabilities:
+            severity = vuln.get('severity', '').lower()
+            if severity in severity_counts:
+                severity_counts[severity] += 1
+        
+        # Calculate vulnerability types
+        vuln_types = {}
+        for vuln in vulnerabilities:
+            vuln_type = vuln.get('vulnerability_type', 'Unknown')
+            if vuln_type not in vuln_types:
+                vuln_types[vuln_type] = 0
+            vuln_types[vuln_type] += 1
+        
+        return {
+            'id': folder_id,
+            'name': folder_id,
+            'vulnerabilities': vulnerabilities,
+            'severity_counts': severity_counts,
+            'vulnerability_types': vuln_types,
+            'total_vulnerabilities': len(vulnerabilities),
+            'token_usage': results.get("token_usage", {
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cost": 0.0
+            })
+        }
+    except Exception as e:
+        print(f"Error getting details for {folder_id}: {str(e)}")
+        return None
+
+def update_global_pricing_from_file():
+    """Update global pricing from the pricing data file"""
+    try:
+        pricing_file = Path("/project/pricing_data.json")
+        if pricing_file.exists():
+            with open(pricing_file, 'r') as f:
+                return json.load(f)
+    except Exception:
+        pass
     
     return {
-        'id': folder_id,
-        'name': folder_id[:-5] if folder_id.endswith('_logs') else folder_id,
-        'vulnerabilities': vulnerabilities,
-        'severity_counts': severity_counts,
-        'vulnerability_types': vuln_types,
-        'total_vulnerabilities': len(vulnerabilities)
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost": 0.0
     }
 
-def run_scan_job(src_dir, openai_key, model_name, job_id, enable_codeql='true', codeql_language='javascript'):
-    """Run a scan job in a separate process"""
-    JOBS[job_id]['status'] = 'running'
+def run_orchestrator_thread(api_key):
+    """
+    Run the orchestrator in a separate thread.
+    
+    Args:
+        api_key: OpenAI API key
+    """
+    global SCANNING_IN_PROGRESS, CURRENT_SCAN_PROGRESS, SCAN_STATUS
+    
+    SCANNING_IN_PROGRESS = True
+    SCAN_STATUS = "running"
+    CURRENT_SCAN_PROGRESS = 5
     
     try:
-        env = os.environ.copy()
-        env['OPENAI_API_KEY'] = openai_key or ENTRYPOINT_API_KEY
-        env['SRC_DIR'] = src_dir
-        env['OUTPUT_DIR'] = str(get_logs_directory())
-        
-        project_name = Path(src_dir).name
-        env['PROJECT_NAME'] = project_name
-        
-        if model_name:
-            env['OPENAI_MODEL'] = model_name
-        env['ENABLE_CODEQL'] = enable_codeql
-        env['CODEQL_LANGUAGE'] = codeql_language
-        
-        process = subprocess.Popen(
-            [sys.executable, os.path.join(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                'main.py'
-            )],
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        
-        stdout, stderr = process.communicate()
-        
-        if process.returncode == 0:
-            JOBS[job_id]['status'] = 'completed'
-            JOBS[job_id]['output'] = stdout.decode('utf-8', errors='ignore')
-            
-            sanitized_name = sanitize_folder_name(project_name)
-            JOBS[job_id]['results_folder'] = f"{sanitized_name}_logs"
-        else:
-            JOBS[job_id]['status'] = 'failed'
-            JOBS[job_id]['error'] = stderr.decode('utf-8', errors='ignore')
-    
+        run_orchestrator(api_key)
+        SCAN_STATUS = "completed"
     except Exception as e:
-        JOBS[job_id]['status'] = 'failed'
-        JOBS[job_id]['error'] = str(e)
+        print(f"Error in orchestrator: {str(e)}")
+        SCAN_STATUS = "failed"
+    finally:
+        SCANNING_IN_PROGRESS = False
+        CURRENT_SCAN_PROGRESS = 100
+
+@app.context_processor
+def inject_pricing_data():
+    """Inject pricing data into all templates"""
+    pricing_data = update_global_pricing_from_file()
+    return {
+        'pricing_data': pricing_data,
+        'scanning_in_progress': SCANNING_IN_PROGRESS,
+        'scan_status': SCAN_STATUS
+    }
 
 @app.route('/')
 def index():
-    """Home page with list of analyzed folders"""
+    """Home page - redirect to setup page if API key is not set"""
+    if not API_KEY:
+        return redirect(url_for('setup'))
+    
     folders = get_analyzed_folders()
     return render_template('index.html', folders=folders)
+
+@app.route('/setup', methods=['GET', 'POST'])
+def setup():
+    """API key setup page"""
+    global API_KEY
+    
+    if request.method == 'POST':
+        api_key = request.form.get('openai_key')
+        
+        if not api_key or not api_key.startswith('sk-'):
+            flash('Please provide a valid OpenAI API key', 'error')
+            return redirect(url_for('setup'))
+        
+        API_KEY = api_key
+        os.environ["OPENAI_API_KEY"] = api_key
+        
+        flash('API key saved successfully', 'success')
+        return redirect(url_for('index'))
+    
+    return render_template('setup.html')
+
+@app.route('/projects')
+def projects():
+    """Projects page - list all project folders"""
+    if not API_KEY:
+        return redirect(url_for('setup'))
+    
+    project_folders = get_project_folders()
+    return render_template('projects.html', projects=project_folders)
 
 @app.route('/analysis/<folder_id>')
 def analysis_details(folder_id):
     """Show analysis results for a specific folder"""
+    if not API_KEY:
+        return redirect(url_for('setup'))
+    
     details = get_folder_details(folder_id)
     if not details:
-        # Încercăm să găsim directorul de log cu alt pattern de sanitizare
-        logs_dir = get_logs_directory()
-        potential_matches = []
-        
-        # Căutăm toate directoarele de log
-        for folder in logs_dir.iterdir():
-            if folder.is_dir() and folder.name.endswith("_logs"):
-                potential_matches.append(folder.name)
-        
-        # Dacă există orice potrivire, redirecționăm la prima
-        if potential_matches:
-            flash(f"Folder original negăsit. Redirecționat către {potential_matches[0]}", "warning")
-            return redirect(url_for('analysis_details', folder_id=potential_matches[0]))
-        
         abort(404)
     
     return render_template('analysis.html', details=details)
 
 @app.route('/scan', methods=['GET', 'POST'])
 def scan():
-    """Scan a new folder"""
+    """Scan all projects"""
+    global SCANNING_IN_PROGRESS
+    
+    if not API_KEY:
+        return redirect(url_for('setup'))
+    
     if request.method == 'POST':
-        folder_path = request.form.get('folder_path')
-        openai_key = request.form.get('openai_key')
-        model_name = request.form.get('model_name')
-        enable_codeql = request.form.get('enable_codeql', 'true')
-        codeql_language = request.form.get('codeql_language', 'javascript')
-
-        if not folder_path:
-            flash('Please provide folder path', 'error')
-            return redirect(url_for('scan'))
+        if SCANNING_IN_PROGRESS:
+            flash('A scan is already in progress', 'error')
+            return redirect(url_for('scan_status'))
         
-        if not openai_key and not ENTRYPOINT_API_KEY:
-            flash('Please provide OpenAI API key or ensure it was provided at container startup', 'error')
-            return redirect(url_for('scan'))
-        
-        if not os.path.isdir(folder_path):
-            flash(f'Folder {folder_path} does not exist', 'error')
-            return redirect(url_for('scan'))
-        
-        job_id = str(int(time.time()))
-        JOBS[job_id] = {
-            'status': 'starting',
-            'folder': folder_path,
-            'model': model_name or 'gpt-4-turbo',
-            'codeql': enable_codeql == 'true',
-            'codeql_language': codeql_language,
-            'time': time.time()
-        }
-        
-        thread = threading.Thread(
-            target=run_scan_job,
-            args=(folder_path, openai_key, model_name, job_id, enable_codeql, codeql_language)
-        )
+        # Start scan in a separate thread
+        thread = threading.Thread(target=run_orchestrator_thread, args=(API_KEY,))
         thread.daemon = True
         thread.start()
         
-        flash('Scan job started', 'success')
-        return redirect(url_for('job_status', job_id=job_id))
+        flash('Scan started for all projects', 'success')
+        return redirect(url_for('scan_status'))
     
-    mounted_subdirs = get_mounted_subdirectories()
-    return render_template('scan.html', 
-                          has_entrypoint_key=bool(ENTRYPOINT_API_KEY),
-                          mounted_subdirs=mounted_subdirs,
-                          mounted_dir=MOUNTED_SRC_DIR)
+    project_folders = get_project_folders()
+    return render_template('scan.html', projects=project_folders)
 
-@app.route('/job/<job_id>')
-def job_status(job_id):
-    """Check the status of a job"""
-    if job_id not in JOBS:
-        abort(404)
-    return render_template('job_status.html', job=JOBS[job_id], job_id=job_id)
+@app.route('/scan/status')
+def scan_status():
+    """Show the status of the current scan"""
+    if not API_KEY:
+        return redirect(url_for('setup'))
+    
+    return render_template('scan_status.html', 
+                          scanning=SCANNING_IN_PROGRESS, 
+                          progress=CURRENT_SCAN_PROGRESS,
+                          status=SCAN_STATUS)
 
-@app.route('/api/job/<job_id>')
-def api_job_status(job_id):
-    """API endpoint to check job status"""
-    if job_id not in JOBS:
-        return jsonify({'error': 'Job not found'}), 404
-    return jsonify(JOBS[job_id])
+@app.route('/api/scan/status')
+def api_scan_status():
+    """API endpoint to get scan status"""
+    pricing_data = update_global_pricing_from_file()
+    
+    return jsonify({
+        'scanning': SCANNING_IN_PROGRESS,
+        'progress': CURRENT_SCAN_PROGRESS,
+        'status': SCAN_STATUS,
+        'pricing': pricing_data
+    })
+
+@app.route('/api/pricing')
+def api_pricing():
+    """API endpoint to get pricing data"""
+    return jsonify(update_global_pricing_from_file())
 
 if __name__ == '__main__':
+    # Create base directory structure if it doesn't exist
+    INPUT_DIR.mkdir(exist_ok=True, parents=True)
+    OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+    
     app.run(debug=True, host='0.0.0.0')

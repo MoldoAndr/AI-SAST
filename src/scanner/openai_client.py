@@ -26,7 +26,7 @@ def get_openai_client() -> OpenAI:
     return OpenAI(api_key=api_key)
 
 
-def call_openai_with_retry(client, model, messages, temperature=0.2, max_tokens=4000, 
+def call_openai_with_retry(client, model="gpt-4o", messages=None, temperature=0.2, max_tokens=4000, 
                           max_retries=3, retry_delay=5):
     """
     Call OpenAI API with retry logic for handling rate limits and temporary errors.
@@ -46,18 +46,30 @@ def call_openai_with_retry(client, model, messages, temperature=0.2, max_tokens=
     Raises:
         Exception: If the API call fails after all retries
     """
+    if messages is None:
+        messages = []
+        
     retries = 0
     while retries <= max_retries:
         try:
+            logger.info(f"Making OpenAI API call with model: {model}")
+            logger.debug(f"Message count: {len(messages)}")
+            
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens
             )
+            
+            # Log token usage
+            if hasattr(response, 'usage'):
+                logger.info(f"Token usage - Input: {response.usage.prompt_tokens}, Output: {response.usage.completion_tokens}")
+            
             return response
         except Exception as e:
             error_msg = str(e).lower()
+            logger.warning(f"OpenAI API error: {error_msg}")
             
             # Rate limit or server errors that should trigger a retry
             if any(msg in error_msg for msg in ["rate limit", "timeout", "server", "overloaded", "capacity"]):

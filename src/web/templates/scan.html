@@ -32,6 +32,32 @@
             </div>
         </div>
 
+        <!-- Scan Options -->
+        <div>
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Scan Options</h2>
+            <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                <div class="flex items-center">
+                    <input type="checkbox" id="enable_codeql" name="enable_codeql" value="true" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                    <label for="enable_codeql" class="ml-2 block text-sm text-gray-900">
+                        Enable CodeQL Analysis
+                    </label>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">CodeQL provides additional static analysis capabilities but may increase scan time.</p>
+                
+                <div class="mt-4" id="codeql_options">
+                    <label for="codeql_language" class="block text-sm font-medium text-gray-700">CodeQL Language</label>
+                    <select id="codeql_language" name="codeql_language" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="javascript">JavaScript/TypeScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C/C++</option>
+                        <option value="csharp">C#</option>
+                        <option value="go">Go</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <!-- Projects List -->
         <div>
             <h2 class="text-lg font-medium text-gray-900 mb-4">Projects to Scan</h2>
@@ -95,5 +121,23 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const enableCodeqlCheckbox = document.getElementById('enable_codeql');
+    const codeqlOptions = document.getElementById('codeql_options');
+    
+    function toggleCodeqlOptions() {
+        if (enableCodeqlCheckbox.checked) {
+            codeqlOptions.style.display = 'block';
+        } else {
+            codeqlOptions.style.display = 'none';
+        }
+    }
+    
+    enableCodeqlCheckbox.addEventListener('change', toggleCodeqlOptions);
+    toggleCodeqlOptions(); // Initial state
+});
+</script>
 
 {% endblock %}

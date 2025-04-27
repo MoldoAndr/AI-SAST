@@ -77,10 +77,21 @@ def setup_config() -> Config:
     batch_size = int(os.getenv("BATCH_SIZE", "10"))
     max_retries = int(os.getenv("MAX_RETRIES", "3"))
     retry_delay = int(os.getenv("RETRY_DELAY", "5"))
-    enable_codeql = os.getenv("ENABLE_CODEQL", "true").lower() in ("true", "1", "yes")
+    
+    # CodeQL configuration
+    enable_codeql_str = os.getenv("ENABLE_CODEQL", "true").lower()
+    enable_codeql = enable_codeql_str in ("true", "1", "yes")
     codeql_language = os.getenv("CODEQL_LANGUAGE", "javascript")
-
+    
+    # Validate CodeQL language
+    valid_languages = ["javascript", "python", "java", "cpp", "csharp", "go"]
+    if codeql_language not in valid_languages:
+        logger.warning(f"Invalid CodeQL language: {codeql_language}. Defaulting to javascript.")
+        codeql_language = "javascript"
+    
+    # Log configuration settings
     logger.info(f"Configuration: src_dir={src_dir}, output_dir={output_dir}, model={model}")
+    logger.info(f"CodeQL: enabled={enable_codeql}, language={codeql_language}")
     
     return Config(
         openai_api_key=openai_key,

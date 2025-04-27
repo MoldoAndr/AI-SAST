@@ -51,6 +51,9 @@ def scan_single_project(project_dir: Path, output_dir: Path, config: Config, pri
     logger = setup_logger(project_output_dir, config.log_level)
     logger.info(f"Starting scan for project: {project_name}")
     
+    # Log the configuration settings including CodeQL options
+    logger.info(f"Scan configuration: model={config.model}, enable_codeql={config.enable_codeql}, codeql_language={config.codeql_language}")
+    
     scan_start_time = time.time()
     
     scan_results = {
@@ -63,7 +66,12 @@ def scan_single_project(project_dir: Path, output_dir: Path, config: Config, pri
         },
         "vulnerabilities": [],
         "successful": False,
-        "error": None
+        "error": None,
+        "configuration": {
+            "model": config.model,
+            "enable_codeql": config.enable_codeql,
+            "codeql_language": config.codeql_language if config.enable_codeql else "disabled"
+        }
     }
     
     try:
@@ -166,6 +174,13 @@ def orchestrate_scans(input_dir: Path, output_dir: Path, config: Config) -> Dict
     for project in projects:
         console.print(f"  - {project.name}")
     
+    # Log scan configuration
+    console.print("\n[bold blue]Scan Configuration:[/bold blue]")
+    console.print(f"Model: [bold]{config.model}[/bold]")
+    console.print(f"CodeQL: [bold]{'Enabled' if config.enable_codeql else 'Disabled'}[/bold]")
+    if config.enable_codeql:
+        console.print(f"CodeQL Language: [bold]{config.codeql_language}[/bold]")
+    
     # Set up global pricing tracker
     pricing_tracker = PricingTracker()
     
@@ -183,6 +198,11 @@ def orchestrate_scans(input_dir: Path, output_dir: Path, config: Config) -> Dict
         "successful_scans": sum(1 for r in results.values() if r.get("successful", False)),
         "total_vulnerabilities": sum(len(r.get("vulnerabilities", [])) for r in results.values()),
         "token_usage": pricing_tracker.get_total_usage(),
+        "configuration": {
+            "model": config.model,
+            "enable_codeql": config.enable_codeql,
+            "codeql_language": config.codeql_language if config.enable_codeql else "disabled"
+        },
         "project_results": results
     }
     
@@ -227,6 +247,13 @@ def run_orchestrator(api_key: str):
     # Set up configuration
     try:
         config = setup_config()
+        
+        # Check for CodeQL environment variables that might have been set by the web interface
+        enable_codeql_str = os.environ.get("ENABLE_CODEQL", "true").lower()
+        config.enable_codeql = enable_codeql_str in ("true", "1", "yes")
+        
+        if config.enable_codeql:
+            config.codeql_language = os.environ.get("CODEQL_LANGUAGE", "javascript")
     except Exception as e:
         console.print(f"[bold red]ERROR:[/bold red] Failed to setup configuration: {str(e)}")
         return

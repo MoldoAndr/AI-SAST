@@ -33,6 +33,10 @@ API_KEY = None
 SCANNING_IN_PROGRESS = False
 CURRENT_SCAN_PROGRESS = 0
 SCAN_STATUS = "idle"
+SCAN_OPTIONS = {
+    "enable_codeql": True,
+    "codeql_language": "javascript"
+}
 
 def sanitize_folder_name(name):
     """Sanitize folder name to ensure consistency between generation and retrieval"""
@@ -171,6 +175,10 @@ def run_orchestrator_thread(api_key):
     CURRENT_SCAN_PROGRESS = 5
     
     try:
+        # Apply scan options to environment variables
+        os.environ["ENABLE_CODEQL"] = str(SCAN_OPTIONS["enable_codeql"]).lower()
+        os.environ["CODEQL_LANGUAGE"] = SCAN_OPTIONS["codeql_language"]
+        
         run_orchestrator(api_key)
         SCAN_STATUS = "completed"
     except Exception as e:
@@ -243,7 +251,7 @@ def analysis_details(folder_id):
 @app.route('/scan', methods=['GET', 'POST'])
 def scan():
     """Scan all projects"""
-    global SCANNING_IN_PROGRESS
+    global SCANNING_IN_PROGRESS, SCAN_OPTIONS
     
     if not API_KEY:
         return redirect(url_for('setup'))
@@ -252,6 +260,10 @@ def scan():
         if SCANNING_IN_PROGRESS:
             flash('A scan is already in progress', 'error')
             return redirect(url_for('scan_status'))
+        
+        # Update scan options from form
+        SCAN_OPTIONS["enable_codeql"] = 'enable_codeql' in request.form
+        SCAN_OPTIONS["codeql_language"] = request.form.get('codeql_language', 'javascript')
         
         # Start scan in a separate thread
         thread = threading.Thread(target=run_orchestrator_thread, args=(API_KEY,))

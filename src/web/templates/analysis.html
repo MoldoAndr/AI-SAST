@@ -26,188 +26,6 @@
         <span>Back to Dashboard</span>
     </a>
 </div>
-
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-semibold text-gray-900">Analysis Results: {{ details.name }}</h1>
-        <span class="px-3 py-1 rounded-full text-sm font-medium {% if details.total_vulnerabilities > 0 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
-            {{ details.total_vulnerabilities }} {{ details.total_vulnerabilities == 1 and 'Vulnerability' or 'Vulnerabilities' }}
-        </span>
-    </div>
-    
-    <!-- Token Usage Stats -->
-    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <h2 class="text-sm font-medium text-gray-700 mb-2">Token Usage</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <p class="text-xs text-gray-500">Input Tokens</p>
-                <p class="text-sm font-medium">{{ details.token_usage.input_tokens }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500">Output Tokens</p>
-                <p class="text-sm font-medium">{{ details.token_usage.output_tokens }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500">Cost</p>
-                <p class="text-sm font-medium">${{ "%.4f"|format(details.token_usage.cost) }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Critical -->
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-red-100 rounded-md p-2">
-                    <svg class="h-5 w-5 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-sm font-medium text-gray-900">Critical</h3>
-                    <p class="text-2xl font-bold text-gray-900">{{ details.severity_counts.critical }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- High -->
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-yellow-100 rounded-md p-2">
-                    <svg class="h-5 w-5 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-sm font-medium text-gray-900">High</h3>
-                    <p class="text-2xl font-bold text-gray-900">{{ details.severity_counts.high }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Medium -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-blue-100 rounded-md p-2">
-                    <svg class="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-sm font-medium text-gray-900">Medium</h3>
-                    <p class="text-2xl font-bold text-gray-900">{{ details.severity_counts.medium }}</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Low -->
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-green-100 rounded-md p-2">
-                    <svg class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <h3 class="text-sm font-medium text-gray-900">Low</h3>
-                    <p class="text-2xl font-bold text-gray-900">{{ details.severity_counts.low }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Vulnerability Types Chart -->
-    {% if details.vulnerability_types %}
-    <div class="mb-8">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">Vulnerability Types</h2>
-        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <canvas id="vulnerabilityTypesChart" height="200"></canvas>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Vulnerabilities List -->
-    <div>
-        <h2 class="text-lg font-medium text-gray-900 mb-4">Vulnerabilities</h2>
-        
-        {% if details.vulnerabilities %}
-            <div class="space-y-4">
-                {% for vuln in details.vulnerabilities %}
-                {% set severity_class = {
-                    'critical': 'severity-critical',
-                    'high': 'severity-high',
-                    'medium': 'severity-medium',
-                    'low': 'severity-low'
-                }.get(vuln.severity|lower, 'severity-low') %}
-                {% set badge_class = {
-                    'critical': 'bg-red-100 text-red-800',
-                    'high': 'bg-yellow-100 text-yellow-800',
-                    'medium': 'bg-blue-100 text-blue-800',
-                    'low': 'bg-green-100 text-green-800'
-                }.get(vuln.severity|lower, 'bg-green-100 text-green-800') %}
-                <div class="vulnerability-card border rounded-lg overflow-hidden shadow-sm {{ severity_class }}">
-                    <div class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ badge_class }}">
-                                    {{ vuln.severity }}
-                                </span>
-                                <h3 class="ml-2 text-base font-medium text-gray-900">{{ vuln.vulnerability_type }}</h3>
-                                {% if vuln.source %}
-                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                    {{ vuln.source }}
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="mt-2">
-                            <div class="text-sm text-gray-500">
-                                <span class="font-medium text-gray-900">File:</span> 
-                                {% if vuln.location and vuln.location.file %}
-                                    {{ vuln.location.file }}
-                                    <span class="font-medium text-gray-900 ml-2">Line:</span> {{ vuln.location.line }}
-                                {% elif vuln.file_path %}
-                                    {{ vuln.file_path }}
-                                    {% if vuln.line_number %}
-                                    <span class="font-medium text-gray-900 ml-2">Line:</span> {{ vuln.line_number }}
-                                    {% endif %}
-                                {% else %}
-                                    Unknown location
-                                {% endif %}
-                            </div>
-                            
-                            <div class="mt-2 text-sm text-gray-700">{{ vuln.description }}</div>
-                            
-                            {% if vuln.recommendation %}
-                            <div class="mt-2 bg-blue-50 p-3 rounded-md">
-                                <div class="text-sm font-medium text-blue-800">Recommendation:</div>
-                                <div class="text-sm text-blue-700">{{ vuln.recommendation }}</div>
-                            </div>
-                            {% endif %}
-                            
-                            {% if vuln.code_snippet %}
-                            <div class="mt-3 bg-gray-800 text-white p-3 rounded-md overflow-x-auto">
-                                <pre class="text-xs leading-relaxed"><code>{{ vuln.code_snippet }}</code></pre>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <svg class="mx-auto h-12 w-12 text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No vulnerabilities found</h3>
-                <p class="mt-1 text-sm text-gray-500">Your code passed all security checks.</p>
-            </div>
-        {% endif %}
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -275,3 +93,53 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 {% endif %}
 {% endblock %}
+
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-semibold text-gray-900">Analysis Results: {{ details.name }}</h1>
+        <span class="px-3 py-1 rounded-full text-sm font-medium {% if details.total_vulnerabilities > 0 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+            {{ details.total_vulnerabilities }} {{ details.total_vulnerabilities == 1 and 'Vulnerability' or 'Vulnerabilities' }}
+        </span>
+    </div>
+    
+    <!-- Scan Configuration -->
+    {% if details.configuration %}
+    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <h2 class="text-sm font-medium text-gray-700 mb-2">Scan Configuration</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-xs text-gray-500">Model</p>
+                <p class="text-sm font-medium">{{ details.configuration.model }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">CodeQL Analysis</p>
+                <p class="text-sm font-medium">{{ details.configuration.enable_codeql and 'Enabled' or 'Disabled' }}</p>
+            </div>
+            {% if details.configuration.enable_codeql %}
+            <div>
+                <p class="text-xs text-gray-500">CodeQL Language</p>
+                <p class="text-sm font-medium">{{ details.configuration.codeql_language }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Token Usage Stats -->
+    <div class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <h2 class="text-sm font-medium text-gray-700 mb-2">Token Usage</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-xs text-gray-500">Input Tokens</p>
+                <p class="text-sm font-medium">{{ details.token_usage.input_tokens }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Output Tokens</p>
+                <p class="text-sm font-medium">{{ details.token_usage.output_tokens }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Cost</p>
+                <p class="text-sm font-medium">${{ "%.4f"|format(details.token_usage.cost) }}</p>
+            </div>
+        </div>
+    </div>

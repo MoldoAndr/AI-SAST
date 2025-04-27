@@ -38,7 +38,7 @@ def update_global_pricing(usage: Dict[str, Any]) -> None:
         
         # Save to a persistent file for the web interface to access
         try:
-            pricing_file = Path("/project/pricing_data.json")
+            pricing_file = Path("pricing_data.json")
             with open(pricing_file, 'w') as f:
                 json.dump(GLOBAL_PRICING, f)
         except Exception:

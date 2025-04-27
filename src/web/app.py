@@ -28,6 +28,10 @@ BASE_DIR = Path("/project")
 INPUT_DIR = BASE_DIR / "input"
 OUTPUT_DIR = BASE_DIR / "output"
 
+# Create directories if they don't exist
+INPUT_DIR.mkdir(exist_ok=True, parents=True)
+OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+
 # API key storage (in-memory only, not persistent)
 API_KEY = None
 SCANNING_IN_PROGRESS = False
@@ -89,23 +93,39 @@ def get_analyzed_folders():
     # Sort by timestamp (newest first)
     folders.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
     return folders
-
 def get_folder_details(folder_id):
     """Get details for a specific analysis folder"""
+    # First, try the direct folder path
     folder_path = OUTPUT_DIR / folder_id
     
+    # If not found, try with _logs suffix (might be logs folder)
     if not folder_path.exists() or not folder_path.is_dir():
+        logs_folder_path = OUTPUT_DIR / f"{folder_id}_logs"
+        if logs_folder_path.exists() and logs_folder_path.is_dir():
+            folder_path = logs_folder_path
+    
+    if not folder_path.exists() or not folder_path.is_dir():
+        print(f"Analysis folder not found: {folder_id}")
         return None
     
     try:
+        # Look for the results file
         results_file = folder_path / "scan_results.json"
         if not results_file.exists():
+            print(f"Results file not found in {folder_path}")
             return None
             
         with open(results_file, 'r') as f:
             results = json.load(f)
         
         vulnerabilities = results.get("vulnerabilities", [])
+        
+        # Read configuration
+        configuration = results.get("configuration", {
+            "model": "gpt-4o",
+            "enable_codeql": False,
+            "codeql_language": "disabled"
+        })
         
         # Calculate severity counts
         severity_counts = {
@@ -131,6 +151,7 @@ def get_folder_details(folder_id):
         return {
             'id': folder_id,
             'name': folder_id,
+            'configuration': configuration,
             'vulnerabilities': vulnerabilities,
             'severity_counts': severity_counts,
             'vulnerability_types': vuln_types,
@@ -143,12 +164,14 @@ def get_folder_details(folder_id):
         }
     except Exception as e:
         print(f"Error getting details for {folder_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def update_global_pricing_from_file():
     """Update global pricing from the pricing data file"""
     try:
-        pricing_file = Path("/project/pricing_data.json")
+        pricing_file = Path("pricing_data.json")
         if pricing_file.exists():
             with open(pricing_file, 'r') as f:
                 return json.load(f)
@@ -305,8 +328,4 @@ def api_pricing():
     return jsonify(update_global_pricing_from_file())
 
 if __name__ == '__main__':
-    # Create base directory structure if it doesn't exist
-    INPUT_DIR.mkdir(exist_ok=True, parents=True)
-    OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-    
     app.run(debug=True, host='0.0.0.0')
